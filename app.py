@@ -2,7 +2,15 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 from metrics import process_raw_data, calculate_descriptive_stats, generate_frequency_table_intervals, generate_frequency_table_discrete
-from charts import create_histogram_with_kde, create_summary_five_numbers, PLOTLY_CONFIG
+from charts import create_histogram_with_kde, create_summary_five_numbers
+
+# Configuración anti-zoom directamente en app.py para evitar errores de importación
+PLOTLY_CONFIG = {
+    'displayModeBar': False,
+    'scrollZoom': False,
+    'doubleClick': 'reset',
+    'responsive': True
+}
 
 st.set_page_config(page_title="Analizador Estadístico Cuantitativo", layout="wide")
 
@@ -12,7 +20,6 @@ st.markdown("""
     .main-title { font-size: 26px; font-weight: 800; color: #1E3A8A; margin-bottom: 5px; }
     .var-title { font-size: 18px; font-weight: 700; color: #2563EB; margin-bottom: 20px; border-bottom: 2px solid #E5E7EB; padding-bottom: 6px; }
     
-    /* Tarjetas de Estadística con Tipografía Destacada */
     .stat-card {
         background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
@@ -102,7 +109,7 @@ else:
         df_freq, k, width = generate_frequency_table_intervals(numbers, custom_k=custom_k_value)
     else:
         df_freq = generate_frequency_table_discrete(numbers)
-        k, width = len(df_freq) - 1, 0  # Resta la fila TOTAL
+        k, width = len(df_freq) - 1, 0
 
     # 1. Resumen General
     st.subheader("Resumen Muestral")
@@ -117,7 +124,7 @@ else:
 
     st.markdown("---")
 
-    # 2. Diagrama de 5 Números
+    # 2. Resumen de 5 Números
     st.plotly_chart(create_summary_five_numbers(s), use_container_width=True, config=PLOTLY_CONFIG)
 
     with st.expander("Ver Tabla de Percentiles (P10 - P95)"):
@@ -133,7 +140,6 @@ else:
     st.subheader("Distribución y Tabla de Frecuencias")
     st.plotly_chart(create_histogram_with_kde(numbers, k), use_container_width=True, config=PLOTLY_CONFIG)
 
-    # Tabla con Fila de Totales
     st.dataframe(
         df_freq, 
         use_container_width=True, 
@@ -142,7 +148,7 @@ else:
 
     st.markdown("---")
 
-    # 4. Medidas Estadísticas con Resalte de Resultados (KPIs)
+    # 4. Medidas Estadísticas Descriptivas (KPIs)
     st.subheader("Medidas Estadísticas Descriptivas")
 
     col_a, col_b, col_c = st.columns(3)
