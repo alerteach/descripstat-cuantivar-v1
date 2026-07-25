@@ -91,8 +91,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Encabezado con Logo y Tu Nombre
-URL_LOGO = "https://cdn-icons-png.flaticon.com/512/3090/3090108.png"  # Reemplazar si se desea
-NOMBRE_AUTOR = "Desarrollado por: Ing. Tu Nombre Aquí"  # Personaliza tu nombre aquí
+URL_LOGO = "https://cdn-icons-png.flaticon.com/512/11932/11932670.png"  # Reemplazar si se desea
+NOMBRE_AUTOR = "Desarrollado por: MSc. Ing. Alejandro Rivera"  # Personaliza tu nombre aquí
 
 st.markdown(f"""
     <div class="header-container">
