@@ -98,7 +98,7 @@ st.markdown(f"""
     <div class="header-container">
         <img src="{URL_LOGO}" class="header-logo" alt="Logo">
         <div>
-            <div class="main-title">Sistema de Análisis Estadístico Descriptivo</div>
+            <div class="main-title">Sistema de Análisis Estadístico Descriptivo Cuantitativo</div>
             <div class="author-subtitle">{NOMBRE_AUTOR}</div>
         </div>
     </div>
