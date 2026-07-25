@@ -1,85 +1,103 @@
 import plotly.graph_objects as go
+import plotly.express as px
 import numpy as np
-from scipy import stats
+from scipy.stats import gaussian_kde
 
-def create_histogram_with_kde(numbers, k_sturges):
+# Configuración responsive estándar para ocultar menús flotantes e inhabilitar zoom táctil
+PLOTLY_CONFIG = {
+    'displayModeBar': False,      # Oculta la barra superior de cámara, zoom, etc.
+    'scrollZoom': False,          # Evita zoom accidental con la pantalla táctil
+    'doubleClick': 'reset',       # Restablece al hacer doble toque
+    'responsive': True
+}
+
+def create_summary_five_numbers(stats):
+    min_val = stats['min']
+    q1 = stats['q1']
+    median = stats['median']
+    q3 = stats['q3']
+    max_val = stats['max']
+
     fig = go.Figure()
 
-    # Histograma con bordes blancos claros
-    fig.add_trace(go.Histogram(
-        x=numbers,
-        nbinsx=k_sturges,
-        name="Frecuencia",
-        marker_color='#1E40AF',
-        marker_line_color='white',
-        marker_line_width=2,
-        opacity=0.85,
-        histnorm='probability density'
-    ))
-
-    # Curva KDE
-    kde = stats.gaussian_kde(numbers)
-    x_vals = np.linspace(min(numbers), max(numbers), 200)
-    y_vals = kde(x_vals)
-
-    fig.add_trace(go.Scatter(
-        x=x_vals,
-        y=y_vals,
-        mode='lines',
-        name='Tendencia de Distribución (KDE)',
-        line=dict(color='#DC2626', width=3)
-    ))
-
-    fig.update_layout(
-        title="<b>Histograma de Frecuencias y Curva de Tendencia</b>",
-        xaxis_title="Valores de la Variable",
-        yaxis_title="Densidad",
-        template="plotly_white",
-        margin=dict(l=20, r=20, t=50, b=20),
-        hovermode="x unified"
-    )
-    return fig
-
-def create_summary_five_numbers(stats_dict):
-    """Crea una ilustración equilibrada con Boxplot y marcas de 5 números."""
-    vals = [stats_dict['min'], stats_dict['q1'], stats_dict['median'], stats_dict['q3'], stats_dict['max']]
-    labels = ["Mínimo", "Q1 (P25)", "Q2 (Mediana)", "Q3 (P75)", "Máximo"]
-    
-    fig = go.Figure()
-
-    # Diagrama de Caja
+    # Diagrama de caja horizontal sin interferir con textos
     fig.add_trace(go.Box(
-        x=stats_dict['min'] if False else None,
-        q1=[stats_dict['q1']],
-        median=[stats_dict['median']],
-        q3=[stats_dict['q3']],
-        lowerfence=[stats_dict['min']],
-        upperfence=[stats_dict['max']],
+        x=[min_val, q1, median, q3, max_val],
+        name="",
+        boxpoints=False,
         orientation='h',
-        name="Distribución",
-        fillcolor='rgba(37, 99, 235, 0.15)',
-        line=dict(color='#2563EB', width=2),
+        marker_color='#2563EB',
+        line=dict(width=2),
         showlegend=False
     ))
 
-    # Puntos numéricos limpios
+    # Puntos con etiquetas formateadas arriba para no traslaparse
+    labels = ['Mín', 'Q1', 'Mediana', 'Q3', 'Máx']
+    vals = [min_val, q1, median, q3, max_val]
+
     fig.add_trace(go.Scatter(
         x=vals,
         y=[0]*5,
         mode='markers+text',
-        marker=dict(size=12, color='#1E3A8A'),
-        text=[f"<b>{lbl}</b><br>{val:,.2f}" for lbl, val in zip(labels, vals)],
-        textposition=["top center", "bottom center", "top center", "bottom center", "top center"],
-        hoverinfo='text',
+        text=[f"<b>{l}</b><br>{v:,.1f}" for l, v in zip(labels, vals)],
+        textposition="top center",
+        marker=dict(color='#1E3A8A', size=10),
+        hoverinfo='none',
         showlegend=False
     ))
 
     fig.update_layout(
-        title="<b>Posición y Dispersión (Diagrama de Caja y 5 Números Clave)</b>",
+        title=dict(text="Resumen de 5 Números (Caja y Bigotes)", font=dict(size=14)),
         xaxis=dict(showgrid=True, zeroline=False),
-        yaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
-        template="plotly_white",
-        height=260,
-        margin=dict(l=40, r=40, t=60, b=30)
+        yaxis=dict(showticklabels=False, range=[-0.8, 1.2]),
+        height=220,
+        margin=dict(l=15, r=15, t=50, b=20),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        dragmode=False  # Inhabilita el arrastre/zoom con el dedo
     )
+
+    return fig
+
+def create_histogram_with_kde(data, k_intervals):
+    data_np = np.array(data)
+    
+    fig = go.Figure()
+
+    # Histograma
+    fig.add_trace(go.Histogram(
+        x=data_np,
+        nbinsx=k_intervals,
+        name="Frecuencia",
+        marker_color="#2563EB",
+        opacity=0.75,
+        histnorm='probability density'
+    ))
+
+    # Curva KDE
+    if len(data_np) > 1 and np.std(data_np) > 0:
+        kde = gaussian_kde(data_np)
+        x_vals = np.linspace(min(data_np), max(data_np), 200)
+        y_vals = kde(x_vals)
+
+        fig.add_trace(go.Scatter(
+            x=x_vals,
+            y=y_vals,
+            mode='lines',
+            name="Tendencia (KDE)",
+            line=dict(color='#DC2626', width=2)
+        ))
+
+    fig.update_layout(
+        title=dict(text="Histograma y Curva de Tendencia", font=dict(size=14)),
+        xaxis_title="Valor (X)",
+        yaxis_title="Densidad",
+        height=320,
+        margin=dict(l=15, r=15, t=40, b=30),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        dragmode=False  # Inhabilita el arrastre/zoom con el dedo
+    )
+
     return fig

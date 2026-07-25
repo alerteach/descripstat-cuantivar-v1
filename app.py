@@ -2,24 +2,46 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 from metrics import process_raw_data, calculate_descriptive_stats, generate_frequency_table_intervals, generate_frequency_table_discrete
-from charts import create_histogram_with_kde, create_summary_five_numbers
+from charts import create_histogram_with_kde, create_summary_five_numbers, PLOTLY_CONFIG
 
 st.set_page_config(page_title="Analizador Estadístico Cuantitativo", layout="wide")
 
-# Estilos CSS Limpios y Profesionales
+# Estilos CSS de Alta Legibilidad y Resalte de Resultados
 st.markdown("""
     <style>
-    .main-title { font-size: 28px; font-weight: bold; color: #1E3A8A; margin-bottom: 5px; }
-    .var-title { font-size: 20px; font-weight: 600; color: #2563EB; margin-bottom: 20px; border-bottom: 2px solid #E5E7EB; padding-bottom: 5px; }
+    .main-title { font-size: 26px; font-weight: 800; color: #1E3A8A; margin-bottom: 5px; }
+    .var-title { font-size: 18px; font-weight: 700; color: #2563EB; margin-bottom: 20px; border-bottom: 2px solid #E5E7EB; padding-bottom: 6px; }
+    
+    /* Tarjetas de Estadística con Tipografía Destacada */
     .stat-card {
-        background-color: #F8FAFC;
+        background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        padding: 18px;
+        border-radius: 10px;
+        padding: 16px;
         margin-bottom: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
     }
-    .stat-card-title { font-size: 16px; font-weight: bold; color: #0F172A; margin-bottom: 12px; border-bottom: 1px solid #CBD5E1; padding-bottom: 4px; }
-    .stat-item { font-size: 14px; color: #334155; margin-bottom: 6px; }
+    .stat-card-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
+        border-bottom: 2px solid #F1F5F9;
+        padding-bottom: 6px;
+    }
+    .metric-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px dashed #F1F5F9;
+    }
+    .metric-row:last-child { border-bottom: none; }
+    .metric-label { font-size: 13px; color: #64748B; font-weight: 500; }
+    .metric-value { font-size: 18px; color: #0F172A; font-weight: 800; font-family: monospace; }
+    .highlight-value { color: #2563EB; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -34,7 +56,7 @@ custom_k_value = None
 if "Intervalos" in data_type:
     interval_method = st.sidebar.radio(
         "Cálculo de Intervalos (k):",
-        ["Regla de Sturges (Auto Impar)", "Personalizado"]
+        ["Regla de Sturges (Impar cercano)", "Personalizado"]
     )
     if interval_method == "Personalizado":
         custom_k_value = st.sidebar.number_input(
@@ -54,7 +76,6 @@ is_discrete = "Discreta" in data_type
 if example_type == "Ejemplo 100 datos":
     np.random.seed(42)
     if is_discrete:
-        # Genera números enteros entre 1 y 10 para probar frecuencias repetidas
         data_input = " ".join(map(str, np.random.randint(1, 11, size=100)))
     else:
         data_input = " ".join(map(str, np.round(np.random.normal(500, 150, 100), 2)))
@@ -62,7 +83,6 @@ if example_type == "Ejemplo 100 datos":
 elif example_type == "Ejemplo 1,000 datos":
     np.random.seed(42)
     if is_discrete:
-        # Genera números enteros con distribución Poisson (ej. número de llamadas/conteo)
         data_input = " ".join(map(str, np.random.poisson(lam=5, size=1000)))
     else:
         data_input = " ".join(map(str, np.round(np.random.exponential(scale=300000, size=1000), 2)))
@@ -82,7 +102,7 @@ else:
         df_freq, k, width = generate_frequency_table_intervals(numbers, custom_k=custom_k_value)
     else:
         df_freq = generate_frequency_table_discrete(numbers)
-        k, width = len(df_freq), 0
+        k, width = len(df_freq) - 1, 0  # Resta la fila TOTAL
 
     # 1. Resumen General
     st.subheader("Resumen Muestral")
@@ -91,14 +111,14 @@ else:
     c2.metric("Mínimo", f"{s['min']:,.2f}")
     c3.metric("Máximo", f"{s['max']:,.2f}")
     if "Intervalos" in data_type:
-        c4.metric("Número de Clases (k)", f"{k}", help=f"Ancho de clase (A) = {width:,.2f}")
+        c4.metric("Número de Clases (k)", f"{k}", help=f"Amplitud de clase (A) = {width}")
     else:
         c4.metric("Valores Únicos", f"{k}")
 
     st.markdown("---")
 
-    # 2. Resumen de 5 números
-    st.plotly_chart(create_summary_five_numbers(s), use_container_width=True)
+    # 2. Diagrama de 5 Números
+    st.plotly_chart(create_summary_five_numbers(s), use_container_width=True, config=PLOTLY_CONFIG)
 
     with st.expander("Ver Tabla de Percentiles (P10 - P95)"):
         p_cols = st.columns(6)
@@ -111,13 +131,18 @@ else:
 
     # 3. Histograma y Tabla de Frecuencias
     st.subheader("Distribución y Tabla de Frecuencias")
-    st.plotly_chart(create_histogram_with_kde(numbers, k), use_container_width=True)
+    st.plotly_chart(create_histogram_with_kde(numbers, k), use_container_width=True, config=PLOTLY_CONFIG)
 
-    st.dataframe(df_freq, use_container_width=True, hide_index=True)
+    # Tabla con Fila de Totales
+    st.dataframe(
+        df_freq, 
+        use_container_width=True, 
+        hide_index=True
+    )
 
     st.markdown("---")
 
-    # 4. Medidas Estadísticas Profesionales
+    # 4. Medidas Estadísticas con Resalte de Resultados (KPIs)
     st.subheader("Medidas Estadísticas Descriptivas")
 
     col_a, col_b, col_c = st.columns(3)
@@ -126,9 +151,18 @@ else:
         st.markdown(f"""
         <div class="stat-card">
             <div class="stat-card-title">Tendencia Central</div>
-            <div class="stat-item"><b>Media (x̄):</b> {s['mean']:,.4f}</div>
-            <div class="stat-item"><b>Mediana:</b> {s['median']:,.4f}</div>
-            <div class="stat-item"><b>Moda:</b> {s['mode'] if s['mode'] is not None else 'N/A'}</div>
+            <div class="metric-row">
+                <span class="metric-label">Media (x̄):</span>
+                <span class="metric-value highlight-value">{s['mean']:,.2f}</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Mediana:</span>
+                <span class="metric-value">{s['median']:,.2f}</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Moda:</span>
+                <span class="metric-value">{f"{s['mode']:,.2f}" if s['mode'] is not None else 'N/A'}</span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -136,10 +170,22 @@ else:
         st.markdown(f"""
         <div class="stat-card">
             <div class="stat-card-title">Dispersión Muestral (n - 1)</div>
-            <div class="stat-item"><b>Varianza (S²):</b> {s['var_sample']:,.4f}</div>
-            <div class="stat-item"><b>Desviación Estándar (S):</b> {s['std_sample']:,.4f}</div>
-            <div class="stat-item"><b>Coef. de Variación (CV):</b> {s['cv_sample']:.2f}%</div>
-            <div class="stat-item"><b>Rango Intercuartílico (IQR):</b> {s['iqr']:,.4f}</div>
+            <div class="metric-row">
+                <span class="metric-label">Varianza (S²):</span>
+                <span class="metric-value">{s['var_sample']:,.2f}</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Desviación Est. (S):</span>
+                <span class="metric-value highlight-value">{s['std_sample']:,.2f}</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Coef. Variación (CV):</span>
+                <span class="metric-value">{s['cv_sample']:.2f}%</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Rango Intercuartil (IQR):</span>
+                <span class="metric-value">{s['iqr']:,.2f}</span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -147,13 +193,22 @@ else:
         st.markdown(f"""
         <div class="stat-card">
             <div class="stat-card-title">Dispersión Poblacional (N)</div>
-            <div class="stat-item"><b>Varianza (σ²):</b> {s['var_pop']:,.4f}</div>
-            <div class="stat-item"><b>Desviación Estándar (σ):</b> {s['std_pop']:,.4f}</div>
-            <div class="stat-item"><b>Coef. de Variación (CV):</b> {s['cv_pop']:.2f}%</div>
+            <div class="metric-row">
+                <span class="metric-label">Varianza (σ²):</span>
+                <span class="metric-value">{s['var_pop']:,.2f}</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Desviación Est. (σ):</span>
+                <span class="metric-value highlight-value">{s['std_pop']:,.2f}</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Coef. Variación (CV):</span>
+                <span class="metric-value">{s['cv_pop']:.2f}%</span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-    # 5. Forma
+    # 5. Forma de la Distribución
     col_s1, col_s2 = st.columns(2)
     skew_desc = "Simétrica" if abs(s['skewness']) < 0.5 else ("Asimétrica Positiva (Sesgo a la Derecha)" if s['skewness'] > 0 else "Asimétrica Negativa (Sesgo a la Izquierda)")
     kurt_desc = "Mesocúrtica (Distribución Normal)" if abs(s['kurtosis']) < 0.5 else ("Leptocúrtica (Elevada concentración)" if s['kurtosis'] > 0 else "Platocúrtica (Gran dispersión)")
