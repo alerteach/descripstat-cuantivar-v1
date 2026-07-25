@@ -3,11 +3,10 @@ import plotly.express as px
 import numpy as np
 from scipy.stats import gaussian_kde
 
-# Configuración responsive estándar para ocultar menús flotantes e inhabilitar zoom táctil
 PLOTLY_CONFIG = {
-    'displayModeBar': False,      # Oculta la barra superior de cámara, zoom, etc.
-    'scrollZoom': False,          # Evita zoom accidental con la pantalla táctil
-    'doubleClick': 'reset',       # Restablece al hacer doble toque
+    'displayModeBar': False,
+    'scrollZoom': False,
+    'doubleClick': 'reset',
     'responsive': True
 }
 
@@ -20,7 +19,6 @@ def create_summary_five_numbers(stats):
 
     fig = go.Figure()
 
-    # Diagrama de caja horizontal sin interferir con textos
     fig.add_trace(go.Box(
         x=[min_val, q1, median, q3, max_val],
         name="",
@@ -31,7 +29,6 @@ def create_summary_five_numbers(stats):
         showlegend=False
     ))
 
-    # Puntos con etiquetas formateadas arriba para no traslaparse
     labels = ['Mín', 'Q1', 'Mediana', 'Q3', 'Máx']
     vals = [min_val, q1, median, q3, max_val]
 
@@ -39,7 +36,7 @@ def create_summary_five_numbers(stats):
         x=vals,
         y=[0]*5,
         mode='markers+text',
-        text=[f"<b>{l}</b><br>{v:,.1f}" for l, v in zip(labels, vals)],
+        text=[f"<b>{l}</b><br>{v:,.2f}" for l, v in zip(labels, vals)],
         textposition="top center",
         marker=dict(color='#1E3A8A', size=10),
         hoverinfo='none',
@@ -47,14 +44,14 @@ def create_summary_five_numbers(stats):
     ))
 
     fig.update_layout(
-        title=dict(text="Resumen de 5 Números (Caja y Bigotes)", font=dict(size=14)),
+        title=dict(text="Resumen de 5 Números (Caja y Bigotes)", font=dict(size=14, color="#1E293B")),
         xaxis=dict(showgrid=True, zeroline=False),
         yaxis=dict(showticklabels=False, range=[-0.8, 1.2]),
         height=220,
         margin=dict(l=15, r=15, t=50, b=20),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        dragmode=False  # Inhabilita el arrastre/zoom con el dedo
+        dragmode=False
     )
 
     return fig
@@ -64,17 +61,19 @@ def create_histogram_with_kde(data, k_intervals):
     
     fig = go.Figure()
 
-    # Histograma
+    # Histograma con bordes definidos entre columnas
     fig.add_trace(go.Histogram(
         x=data_np,
         nbinsx=k_intervals,
         name="Frecuencia",
-        marker_color="#2563EB",
-        opacity=0.75,
+        marker=dict(
+            color="#2563EB",
+            line=dict(color="#FFFFFF", width=1.5)  # Delimitación entre barras
+        ),
+        opacity=0.85,
         histnorm='probability density'
     ))
 
-    # Curva KDE
     if len(data_np) > 1 and np.std(data_np) > 0:
         kde = gaussian_kde(data_np)
         x_vals = np.linspace(min(data_np), max(data_np), 200)
@@ -85,11 +84,11 @@ def create_histogram_with_kde(data, k_intervals):
             y=y_vals,
             mode='lines',
             name="Tendencia (KDE)",
-            line=dict(color='#DC2626', width=2)
+            line=dict(color='#DC2626', width=2.5)
         ))
 
     fig.update_layout(
-        title=dict(text="Histograma y Curva de Tendencia", font=dict(size=14)),
+        title=dict(text="Histograma y Curva de Tendencia", font=dict(size=14, color="#1E293B")),
         xaxis_title="Valor (X)",
         yaxis_title="Densidad",
         height=320,
@@ -97,7 +96,7 @@ def create_histogram_with_kde(data, k_intervals):
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        dragmode=False  # Inhabilita el arrastre/zoom con el dedo
+        dragmode=False
     )
 
     return fig

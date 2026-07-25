@@ -2,24 +2,49 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 from metrics import process_raw_data, calculate_descriptive_stats, generate_frequency_table_intervals, generate_frequency_table_discrete
-from charts import create_histogram_with_kde, create_summary_five_numbers
-
-# Configuración anti-zoom directamente en app.py para evitar errores de importación
-PLOTLY_CONFIG = {
-    'displayModeBar': False,
-    'scrollZoom': False,
-    'doubleClick': 'reset',
-    'responsive': True
-}
+from charts import create_histogram_with_kde, create_summary_five_numbers, PLOTLY_CONFIG
 
 st.set_page_config(page_title="Analizador Estadístico Cuantitativo", layout="wide")
 
-# Estilos CSS de Alta Legibilidad y Resalte de Resultados
+# Estilos CSS de Alta Legibilidad, Tarjetas y Jerarquía Visual
 st.markdown("""
     <style>
-    .main-title { font-size: 26px; font-weight: 800; color: #1E3A8A; margin-bottom: 5px; }
-    .var-title { font-size: 18px; font-weight: 700; color: #2563EB; margin-bottom: 20px; border-bottom: 2px solid #E5E7EB; padding-bottom: 6px; }
+    /* Header Personalizado */
+    .header-container {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 5px;
+    }
+    .header-logo {
+        width: 50px;
+        height: 50px;
+        object-fit: contain;
+    }
+    .main-title { 
+        font-size: 26px; 
+        font-weight: 800; 
+        color: #1E3A8A; 
+        line-height: 1.2;
+    }
+    .author-subtitle {
+        font-size: 13px;
+        color: #64748B;
+        font-weight: 600;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+    }
+    .var-title { 
+        font-size: 17px; 
+        font-weight: 700; 
+        color: #2563EB; 
+        margin-bottom: 20px; 
+        border-bottom: 2px solid #E5E7EB; 
+        padding-bottom: 6px; 
+    }
     
+    /* Tarjetas de Estadística con Tipografía Destacada */
     .stat-card {
         background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
@@ -29,7 +54,7 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.04);
     }
     .stat-card-title {
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 700;
         color: #475569;
         text-transform: uppercase;
@@ -47,12 +72,37 @@ st.markdown("""
     }
     .metric-row:last-child { border-bottom: none; }
     .metric-label { font-size: 13px; color: #64748B; font-weight: 500; }
-    .metric-value { font-size: 18px; color: #0F172A; font-weight: 800; font-family: monospace; }
+    .metric-value { font-size: 17px; color: #0F172A; font-weight: 800; font-family: monospace; }
     .highlight-value { color: #2563EB; }
+    
+    /* Insignias para Asimetría y Curtosis */
+    .badge-interpretation {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        background-color: #EFF6FF;
+        color: #1D4ED8;
+        border: 1px solid #BFDBFE;
+        margin-top: 8px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="main-title">Sistema de Análisis Estadístico Descriptivo</div>', unsafe_allow_html=True)
+# Encabezado con Logo y Tu Nombre
+URL_LOGO = "https://cdn-icons-png.flaticon.com/512/3090/3090108.png"  # Reemplazar si se desea
+NOMBRE_AUTOR = "Desarrollado por: Ing. Tu Nombre Aquí"  # Personaliza tu nombre aquí
+
+st.markdown(f"""
+    <div class="header-container">
+        <img src="{URL_LOGO}" class="header-logo" alt="Logo">
+        <div>
+            <div class="main-title">Sistema de Análisis Estadístico Descriptivo</div>
+            <div class="author-subtitle">{NOMBRE_AUTOR}</div>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
 
 # Panel Lateral
 st.sidebar.header("Configuración de Datos")
@@ -214,10 +264,36 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-    # 5. Forma de la Distribución
-    col_s1, col_s2 = st.columns(2)
-    skew_desc = "Simétrica" if abs(s['skewness']) < 0.5 else ("Asimétrica Positiva (Sesgo a la Derecha)" if s['skewness'] > 0 else "Asimétrica Negativa (Sesgo a la Izquierda)")
-    kurt_desc = "Mesocúrtica (Distribución Normal)" if abs(s['kurtosis']) < 0.5 else ("Leptocúrtica (Elevada concentración)" if s['kurtosis'] > 0 else "Platocúrtica (Gran dispersión)")
+    # 5. Rediseño Ejecutivo de Forma (Asimetría y Curtosis)
+    skew_desc = "Simétrica" if abs(s['skewness']) < 0.5 else ("Asimétrica Positiva (Sesgo a Derecha)" if s['skewness'] > 0 else "Asimétrica Negativa (Sesgo a Izquierda)")
+    kurt_desc = "Mesocúrtica (Normal)" if abs(s['kurtosis']) < 0.5 else ("Leptocúrtica (Alta concentración)" if s['kurtosis'] > 0 else "Platocúrtica (Baja concentración)")
 
-    col_s1.info(f"**Asimetría / Sesgo (Skewness):** {s['skewness']:.4f}\n\n*Interpretación:* {skew_desc}")
-    col_s2.info(f"**Curtosis (Kurtosis):** {s['kurtosis']:.4f}\n\n*Interpretación:* {kurt_desc}")
+    col_s1, col_s2 = st.columns(2)
+
+    with col_s1:
+        st.markdown(f"""
+        <div class="stat-card">
+            <div class="stat-card-title">Forma: Asimetría / Sesgo</div>
+            <div class="metric-row">
+                <span class="metric-label">Coeficiente (Skewness):</span>
+                <span class="metric-value highlight-value">{s['skewness']:.4f}</span>
+            </div>
+            <div style="text-align: right;">
+                <span class="badge-interpretation">{skew_desc}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_s2:
+        st.markdown(f"""
+        <div class="stat-card">
+            <div class="stat-card-title">Forma: Apuntamiento / Curtosis</div>
+            <div class="metric-row">
+                <span class="metric-label">Coeficiente (Kurtosis):</span>
+                <span class="metric-value highlight-value">{s['kurtosis']:.4f}</span>
+            </div>
+            <div style="text-align: right;">
+                <span class="badge-interpretation">{kurt_desc}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
